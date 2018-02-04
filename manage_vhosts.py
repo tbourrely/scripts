@@ -12,6 +12,8 @@ class Vhost:
 		self.file = '/etc/hosts'
 		self.lines = ''
 		self.errors = 0
+		self.short_target = "# +::1\n"
+		self.full_target = "# +127.0.0.1\n"
 
 	def load_lines(self):
 		handle = open(self.file, 'r')
@@ -25,10 +27,10 @@ class Vhost:
 		# choose prefixe
 		if type == 1:
 			prefixe = '::1 '
-			target = "# +::1\n"
+			target = self.short_target
 		elif type == 2:
 			prefixe = '127.0.0.1 '
-			target = "# +127.0.0.1\n"
+			target = self.full_target
 
 		if prefixe != False:
 			try:
@@ -65,6 +67,41 @@ class Vhost:
 		for t in types:
 			self.del_vhost(vhost, t)
 
+	def list(self):
+		start_limit = "### START VHOSTS ###\n"
+		end_limit = "### END VHOSTS ###\n"
+		start_limit_pos = self.lines.index(start_limit)
+		end_limit_pos = self.lines.index(end_limit)
+		short_search = "::1 " # space is important
+		full_search = "127.0.0.1 " # space is important
+		vhosts_list = {} # dict {vhost:vhost_type}
+
+		if end_limit_pos > start_limit_pos:
+			for line in self.lines[start_limit_pos+1:end_limit_pos]:
+				add = False
+				strip = ''
+
+				if short_search in line and '#' not in line:
+					add = True
+					strip = short_search
+					
+				elif full_search in line and '#' not in line:
+					add = True
+					strip = full_search
+
+
+				if add is True:
+					vhost_to_add = line.rstrip().lstrip(strip)
+					vhost_type = strip.rstrip()
+
+					if vhost_to_add not in vhosts_list:
+						vhosts_list[vhost_to_add] = vhost_type
+					elif vhosts_list[vhost_to_add] != vhost_type:
+						vhosts_list[vhost_to_add] += ', ' + vhost_type
+		
+		print('######################\nListing your vhosts...\n######################')
+		[print("Vhost : %s \t Type : %s" % (vhost, vhosts_list[vhost])) for vhost in vhosts_list]
+
 	def print_lines(self):
 		print(self.lines)
 
@@ -79,12 +116,16 @@ class Vhost:
 			print("Could not update %s, %d errors !" % (self.file, self.errors))
 
 
+
+
+
+
 ### FUNCTIONS ###
 def main():
 	# init parser
 	parser = argparse.ArgumentParser(description='Manage Vhosts')
 	parser.add_argument('command', metavar='command', type=str, nargs=1,
-	                    help='(add | remove)')
+	                    help='(add | remove | list)')
 	parser.add_argument('vhost', metavar='vhost', type=str, nargs='?',
 	                    help='The vhost to manage')
 	parser.add_argument('type', metavar='vhost_type', type=int, nargs='?',
@@ -127,7 +168,8 @@ def main():
 			vhostManager.write_lines()
 		else:
 			print('Please do specify a vhost with the command [%s]' % args.command[0])
-	
+	elif args.command[0] == 'list':
+		vhostManager.list()
 
 #### MAIN ####
 if __name__ == '__main__':
