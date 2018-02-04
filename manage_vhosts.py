@@ -81,14 +81,6 @@ class Vhost:
 
 ### FUNCTIONS ###
 def main():
-	# ask for root access
-	euid = os.geteuid()
-	if euid != 0:
-	    print("Script not started as root. Running sudo..")
-	    args = ['sudo', sys.executable] + sys.argv + [os.environ]
-	    # the next line replaces the currently-running process with the sudo
-	    os.execlpe('sudo', *args)
-
 	# init parser
 	parser = argparse.ArgumentParser(description='Manage Vhosts')
 	parser.add_argument('command', metavar='command', type=str, nargs=1,
@@ -98,7 +90,17 @@ def main():
 	parser.add_argument('type', metavar='vhost_type', type=int, nargs='?',
 	                    help='The vhost type (1->::1 | 2->127.0.0.1)')
 	args = parser.parse_args()
-	print(args)
+	
+
+	# ask for root access
+	euid = os.geteuid()
+	if euid != 0:
+	    print("Script not started as root. Running sudo..")
+	    args = ['sudo', sys.executable] + sys.argv + [os.environ]
+	    # the next line replaces the currently-running process with the sudo
+	    os.execlpe('sudo', *args)
+
+
 	# init vhost manager
 	vhostManager = Vhost()
 	vhostManager.load_lines()
