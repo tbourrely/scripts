@@ -9,7 +9,8 @@ import sys
 ### CLASSES ###
 class Vhost:
 	def __init__(self):
-		self.file = '/etc/hosts'
+		# self.file = '/etc/hosts'
+		self.file = 'vhost.local'
 		self.lines = ''
 		self.errors = 0
 		self.short_target = "# +::1\n"
@@ -68,39 +69,38 @@ class Vhost:
 			self.del_vhost(vhost, t)
 
 	def list(self):
-		start_limit = "### START VHOSTS ###\n"
-		end_limit = "### END VHOSTS ###\n"
-		start_limit_pos = self.lines.index(start_limit)
-		end_limit_pos = self.lines.index(end_limit)
 		short_search = "::1 " # space is important
 		full_search = "127.0.0.1 " # space is important
 		vhosts_list = {} # dict {vhost:vhost_type}
 
-		if end_limit_pos > start_limit_pos:
-			for line in self.lines[start_limit_pos+1:end_limit_pos]:
-				add = False
-				strip = ''
+		# parse file
+		for line in self.lines:
+			# pass if line contains a comment
+			if '#' in line:
+				continue
 
-				if short_search in line and '#' not in line:
-					add = True
-					strip = short_search
-					
-				elif full_search in line and '#' not in line:
-					add = True
-					strip = full_search
+			# pass if ::1 or 127.0.0.1 is not in line
+			strip = ''
+			if short_search in line:
+				strip = short_search
+			elif full_search in line:
+				strip = full_search
+			else:
+				continue
 
+			# clean line
+			vhost_to_add = line.rstrip().lstrip(strip)
+			vhost_type = strip.rstrip()
 
-				if add is True:
-					vhost_to_add = line.rstrip().lstrip(strip)
-					vhost_type = strip.rstrip()
+			# add it to the vhosts list
+			if vhost_to_add not in vhosts_list:
+				vhosts_list[vhost_to_add] = vhost_type
+			elif vhosts_list[vhost_to_add] != vhost_type:
+				vhosts_list[vhost_to_add] += ', ' + vhost_type
 
-					if vhost_to_add not in vhosts_list:
-						vhosts_list[vhost_to_add] = vhost_type
-					elif vhosts_list[vhost_to_add] != vhost_type:
-						vhosts_list[vhost_to_add] += ', ' + vhost_type
-		
 		print('######################\nListing your vhosts...\n######################')
-		[print("Vhost : %s \t Type : %s" % (vhost, vhosts_list[vhost])) for vhost in vhosts_list]
+		print( '{:<30s} {:<20s}'.format('## Vhost ##', '## Type ##') )
+		[print( '{:<30s} {:<20s}'.format(vhost, vhosts_list[vhost]) ) for vhost in vhosts_list]	
 
 	def print_lines(self):
 		print(self.lines)
@@ -114,8 +114,6 @@ class Vhost:
 			print(self.file + ' updated !')
 		else:
 			print("Could not update %s, %d errors !" % (self.file, self.errors))
-
-
 
 
 
