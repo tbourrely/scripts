@@ -9,8 +9,8 @@ import sys
 ### CLASSES ###
 class Vhost:
 	def __init__(self):
-		# self.file = '/etc/hosts'
-		self.file = 'vhost.local'
+		self.file = '/etc/hosts'
+		# self.file = 'vhost.local'
 		self.lines = ''
 		self.errors = 0
 		self.short_target = "# +::1\n"
@@ -59,14 +59,31 @@ class Vhost:
 			try:
 				index = self.lines.index(target)
 				del self.lines[index]
+				return 0 # ok
 			except Exception:
 				self.errors += 1
-				print('vhost does not exists')
+				return 1 # error
 
 	def del_all_types(self, vhost):
-		types = [1, 2]
+		types = {1:'::1', 2:'127.0.0.1'}
+		res = {}
+		
 		for t in types:
-			self.del_vhost(vhost, t)
+			res[t] = self.del_vhost(vhost, t)
+
+		nb_errors = 0
+		nb_ok = 0
+		for r in res:
+			if res[r] == 1:
+				nb_errors += 1
+				print('> Could not delete vhost of type %s' % types[r])
+			else:
+				nb_ok += 1
+				print('> Removed vhost of type %s' % types[r])
+
+		if nb_ok>0:
+			self.errors -= nb_errors
+
 
 	def list(self):
 		short_search = "::1 " # space is important
@@ -98,7 +115,6 @@ class Vhost:
 			elif vhosts_list[vhost_to_add] != vhost_type:
 				vhosts_list[vhost_to_add] += ', ' + vhost_type
 
-		print('######################\nListing your vhosts...\n######################')
 		print( '{:<30s} {:<20s}'.format('## Vhost ##', '## Type ##') )
 		[print( '{:<30s} {:<20s}'.format(vhost, vhosts_list[vhost]) ) for vhost in vhosts_list]	
 
@@ -148,18 +164,18 @@ def main():
 		if args.vhost is not None:
 			if args.command[0] == 'add':
 				if args.type is not None:
-					print('adding %s as type %d ...' % (args.vhost, args.type))
+					print('\n######################\nadding %s as type %d ...\n######################' % (args.vhost, args.type))
 					vhostManager.add_vhost(args.vhost, args.type)
 				else:
-					print('adding %s ...' % args.vhost)
+					print('\n######################\nadding %s ...\n######################' % args.vhost)
 					vhostManager.add_all_types(args.vhost)
 
 			else:
 				if args.type is not None:
-					print('removing %s ...' % args.vhost)
+					print('\n######################\nremoving %s ...\n######################' % args.vhost)
 					vhostManager.del_vhost(args.vhost, args.type)
 				else:
-					print('removing all %s ...' % args.vhost)
+					print('\n######################\nremoving all %s occurrences...\n######################' % args.vhost)
 					vhostManager.del_all_types(args.vhost)
 				
 			# save file
@@ -167,6 +183,7 @@ def main():
 		else:
 			print('Please do specify a vhost with the command [%s]' % args.command[0])
 	elif args.command[0] == 'list':
+		print('\n######################\nListing your vhosts...\n######################')
 		vhostManager.list()
 
 #### MAIN ####
